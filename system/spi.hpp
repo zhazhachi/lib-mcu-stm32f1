@@ -7,7 +7,6 @@ class Spi{
 	public:
 		//BufRcv tx;
 		//BufRcv rx;
-		void (*funRx)();
 		
 		Spi(uint8_t t);
 		void init();

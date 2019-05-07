@@ -16,8 +16,6 @@ History:
 
 Spi spi1(1);
 Spi spi2(2);
-extern void SPI1_Do(void);
-extern void SPI2_Do(void);
 
 /*************************************************
 Function: Spi::Spi
@@ -39,7 +37,6 @@ Spi::Spi(uint8_t t){
 		TX_DMA = DMA1_Channel4;
 		RX_DMA = DMA1_Channel5;
 		FLAG_TC=0x00002000;
-		funRx=SPI1_Do;
 	}
 	if(t==2){
 		the = SPI2;
@@ -52,7 +49,6 @@ Spi::Spi(uint8_t t){
 		TX_DMA = DMA1_Channel7;
 		RX_DMA = DMA1_Channel6;
 		FLAG_TC=0x02000000;
-		funRx=SPI2_Do;
 	}
 }
 

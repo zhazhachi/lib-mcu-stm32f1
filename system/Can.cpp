@@ -162,3 +162,14 @@ void Can::rcv(Msg_TypeDef* msg){
 		CAN1->RF1R |= CAN_RF1R_RFOM1;
 	}
 }
+
+void Can::test(Usart* usart){
+	this->rcv(&this->rx);
+	usart->printf("ID :%x\r\n", this->rx.ExtId);
+	usart->printf("IDE:%x\r\n", this->rx.IDE);
+	usart->printf("RTR:%x\r\n", this->rx.RTR);
+	usart->printf("DLC:%x\r\n", this->rx.DLC);
+	usart->printf("FMI:%x\r\n", this->rx.FMI);
+	for(uint8_t i=0; i<this->rx.DLC; i++)
+		usart->printf("FMI:%x\r\n", this->rx.Data[i]);
+}

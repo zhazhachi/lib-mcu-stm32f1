@@ -7,9 +7,11 @@
 #include "map.hpp"
 #include "delay.hpp"
 #include "riselib/riselib.h"
+#include "it.h"
 
 #define LEN_MAX 512 //最大字节数
-#define LEN_MID 128 //中等字节数
+#define LEN_MID 256 //中等字节数
+#define LEN_MIN 128 //较小字节数
 
 extern int32_t reTry;
 

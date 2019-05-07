@@ -1,6 +1,8 @@
 #ifndef __CAN_H
 #define __CAN_H
 #include "sys.hpp"
+#include "Usart.hpp"
+#include "riselib/riselib.h"
 
 #define CAN_Id_Standard  ((uint32_t)0x00000000)
 #define CAN_Id_Extended  ((uint32_t)0x00000004)
@@ -25,6 +27,7 @@ class Can{
 		void configFilter(uint8_t number,uint8_t maskMode, uint32_t ID, uint32_t mask);
 		uint8_t send(Msg_TypeDef* msg);
 		void rcv(Msg_TypeDef* msg);
+    void test(Usart* usart);
 		
 	private:
 };

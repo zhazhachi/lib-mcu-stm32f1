@@ -20,10 +20,25 @@ History:
 Usart usart1(1);
 Usart usart2(2);
 Usart usart3(3);
-extern void USART1_Do(char* msg, uint16_t len);
-extern void USART2_Do(char* msg, uint16_t len);
-extern void USART3_Do(char* msg, uint16_t len);
 
+static void usart1_funIt(uint32_t status){
+  usart1.RX_DMA->CCR &= ~1;
+  usart1.rxNum = LEN_MID - usart1.RX_DMA->CNDTR;
+  usart1.RX_DMA->CNDTR = LEN_MID;
+  usart1.RX_DMA->CCR |= 1;
+}
+static void usart2_funIt(uint32_t status){
+  usart2.RX_DMA->CCR &= ~1;
+  usart2.rxNum = LEN_MID - usart2.RX_DMA->CNDTR;
+  usart2.RX_DMA->CNDTR = LEN_MID;
+  usart2.RX_DMA->CCR |= 1;
+}
+static void usart3_funIt(uint32_t status){
+  usart3.RX_DMA->CCR &= ~1;
+  usart3.rxNum = LEN_MID - usart3.RX_DMA->CNDTR;
+  usart3.RX_DMA->CNDTR = LEN_MID;
+  usart3.RX_DMA->CCR |= 1;
+}
 /*************************************************
 Function: Usart::Usart
 Description: Usart类的构造函数
@@ -44,7 +59,7 @@ Usart::Usart(uint8_t t){
 		TX_DMA = DMA1_Channel4;
 		RX_DMA = DMA1_Channel5;
 		FLAG_TC= 0x00002000;
-		funRx  = USART1_Do;
+    funIt = usart1_funIt;
 	}
 	if(t==2){
 		the = USART2;
@@ -57,7 +72,7 @@ Usart::Usart(uint8_t t){
 		TX_DMA = DMA1_Channel7;
 		RX_DMA = DMA1_Channel6;
 		FLAG_TC= 0x02000000;
-		funRx  = USART2_Do;
+    funIt = usart2_funIt;
 	}
 	if(t==3){
 		the = USART3;
@@ -70,7 +85,7 @@ Usart::Usart(uint8_t t){
 		TX_DMA = DMA1_Channel2;
 		RX_DMA = DMA1_Channel3;
 		FLAG_TC= 0x00000020;
-		funRx  = USART3_Do;
+    funIt = usart3_funIt;
 	}
 }
 
@@ -88,8 +103,6 @@ Return: void
 void Usart::init(uint32_t bound,uint8_t s,uint8_t e){
 	uint32_t clk, temp;
 	uint16_t integer, fraction;
-
-	rx = BufRcv(s, e, funRx);
 	
 	RCC->APB2ENR |= RCC_GPIO;//使能PORT口时钟
 	//使能串口时钟
@@ -112,13 +125,15 @@ void Usart::init(uint32_t bound,uint8_t s,uint8_t e){
 	fraction=(temp-(integer<<8))>>4;//得到小数部分
 	the->BRR=(integer<<4)+fraction;// 波特率设置
 	//使能接收中断
-	the->CR1 |= 1<<5;//RXNE(1<<6:IDLE)中断使能
+	the->CR1 |= 1<<4;//中断使能 5.RXNE 4.IDLE
 	nvic.config(IRQn,0,0);
 	//DMA设置
-	dma.configTx(TX_DMA,(uint32_t)&the->DR,(uint32_t)&tx.buf,1);
-	//dma.configRx(RX_DMA,(uint32_t)&the->DR,(uint32_t)&rx.buf,LEN_MAX);
+	dma.configTx(TX_DMA,(uint32_t)&the->DR,(uint32_t)&txBuf,1);
+	dma.configRx(RX_DMA,(uint32_t)&the->DR,(uint32_t)&rxBuf,LEN_MID);
 	the->CR3 |= 0xC0;//DMA使能
 	the->CR1 |= 0X200C;//使能,8位数据,无校验位,1位停止,收发
+  
+  it_addListener(this->IRQn, this->funIt);
 }
 
 /*************************************************
@@ -134,8 +149,8 @@ void Usart::printf(char *format, ...){
 	va_start(ap,format);
 	while((DMA1->ISR & FLAG_TC)==0);//等待上次结束
 	TX_DMA->CCR &= ~1;//关DMA
-	vsprintf(tx.buf, format, ap );
-	TX_DMA->CNDTR=std::strlen(tx.buf);
+	vsprintf((char*)txBuf, format, ap );
+	TX_DMA->CNDTR=std::strlen((char*)txBuf);
 	DMA1->IFCR  |= FLAG_TC;//清TC中断
 	TX_DMA->CCR |= 1;//开DMA
 }
@@ -154,43 +169,8 @@ void Usart::send(char *buf, uint16_t len){
 	if(len==0){len=std::strlen(buf);}
 	while((DMA1->ISR & FLAG_TC)==0);//等待上次结束
 	TX_DMA->CCR &= ~1;//关DMA
-	std::memcpy(tx.buf, buf, len);
+	mem_cpy(txBuf, buf, len);
 	TX_DMA->CNDTR=len;
 	DMA1->IFCR  |= FLAG_TC;//清TC中断
 	TX_DMA->CCR |= 1;//开DMA
-}
-
-/*************************************************
-Function: Usart::rcv
-Description: Usart接收单字节
-Calls: 
-Called By: 
-Input: void
-Return: void
-*************************************************/
-void Usart::rcv(){
-	uint8_t res;
-
-	if(the->SR&(1<<5)){
-		res=the->DR;
-		rx.rcv(res);
-	}
-}
-
-/*************************************************
-Function: USART1_IRQHandler
-Description: Usart中断函数
-Calls: 
-Called By: 
-Input: void
-Return: void
-*************************************************/
-_C void USART1_IRQHandler(void){
-	usart1.rcv();
-}
-_C void USART2_IRQHandler(void){
-	usart2.rcv();
-}
-_C void USART3_IRQHandler(void){
-	usart3.rcv();
 }
